@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StepPhysics - Risoluzione Passo-Passo</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #0d1117;
+            color: #f0f6fc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px 10px;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: #58a6ff;
+            letter-spacing: -0.5px;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #8b949e;
+            margin-top: 6px;
+        }
+        .upload-section {
+            border: 2px dashed #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            background: #21262d;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .upload-section:hover {
+            border-color: #58a6ff;
+        }
+        .upload-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        .upload-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #c9d1d9;
+        }
+        .or-divider {
+            text-align: center;
+            color: #484f58;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 16px 0;
+            text-transform: uppercase;
+        }
+        textarea {
+            width: 100%;
+            height: 90px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 12px;
+            color: #c9d1d9;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            margin-bottom: 20px;
+        }
+        textarea:focus {
+            border-color: #58a6ff;
+        }
+        .btn-solve {
+            width: 100%;
+            background: #238636;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-solve:hover {
+            background: #2ea043;
+        }
+        input[type="file"] {
+            display: none;
+        }
+
+        #results-card {
+            display: none;
+        }
+        .step-card {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .step-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #58a6ff;
+            margin-bottom: 8px;
+        }
+        .step-content {
+            font-size: 14px;
+            color: #c9d1d9;
+            line-height: 1.5;
+        }
+        .warning-card {
+            background: rgba(210, 153, 34, 0.15);
+            border: 1px solid #d29922;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .warning-title {
+            color: #f2cc60;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .result-highlight {
+            background: #1f6feb22;
+            border-left: 4px solid #1f6feb;
+            padding: 8px 12px;
+            font-weight: 700;
+            color: #58a6ff;
+            margin-top: 8px;
+            border-radius: 4px;
+        }
+        .loading {
+            text-align: center;
+            color: #8b949e;
+            font-style: italic;
+            display: none;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="logo">StepPhysics ⚡</div>
+        <div class="subtitle">Risolvi e capisci la fisica passo dopo passo</div>
+    </div>
+
+    <div class="upload-section" onclick="document.getElementById('file-input').click()">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text" id="upload-label">Scatta una foto o carica dal rullino</div>
+        <input type="file" id="file-input" accept="image/*" capture="environment" onchange="fileSelected()">
+    </div>
+
+    <div class="or-divider">oppure</div>
+
+    <textarea id="problem-text" placeholder="Incolla o scrivi qui il testo del tuo problema di fisica..."></textarea>
+
+    <div class="loading" id="loading-text">🔄 StepPhysics sta elaborando i 4 passaggi...</div>
+
+    <button class="btn-solve" onclick="sendToAI()">Risolvi Passo-Passo 🚀</button>
+</div>
+
+<div class="container" id="results-card">
+    <div class="header">
+        <div class="logo" style="font-size: 22px;">Soluzione Guidata 📐</div>
+    </div>
+
+    <div class="step-card">
+        <div class="step-title">📌 STEP 1: Dati & Conversione S.I.</div>
+        <div class="step-content" id="step-1">In attesa di elaborazione...</div>
+    </div>
+
+    <div class="step-card">
+        <div class="step-title">📐 STEP 2: Formula & Passaggi Algebrici</div>
+        <div class="step-content" id="step-2">In attesa di elaborazione...</div>
+    </div>
+
+    <div class="step-card">
+        <div class="step-title">🧮 STEP 3: Calcolo Numerico</div>
+        <div class="step-content" id="step-3">In attesa di elaborazione...</div>
+    </div>
+
+    <div class="warning-card">
+        <div class="warning-title">⚠️ STEP 4: Il Trabocchetto da Evitare</div>
+        <div class="step-content" id="step-4" style="color: #e3b341;">In attesa di elaborazione...</div>
+    </div>
+</div>
+
+<script>
+    function fileSelected() {
+        const fileInput = document.getElementById('file-input');
+        if (fileInput.files.length > 0) {
+            document.getElementById('upload-label').innerText = "Immagine: " + fileInput.files[0].name;
+        }
+    }
+
+    async function sendToAI() {
+        const text = document.getElementById('problem-text').value.trim();
+        const fileInput = document.getElementById('file-input');
+        
+        if (!text && fileInput.files.length === 0) {
+            alert('Per favore, inserisci il testo del problema o carica una foto!');
+            return;
+        }
+
+        const loading = document.getElementById('loading-text');
+        loading.style.display = 'block';
+        document.getElementById('results-card').style.display = 'none';
+
+        try {
+            const response = await fetch('/api/solve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ problemText: text })
+            });
+
+            const data = await response.json();
+            loading.style.display = 'none';
+
+            if (data.success) {
+                // Suddividiamo la risposta nei blocchi (per ora inseriamo il testo elaborato dal server)
+                document.getElementById('step-1').innerHTML = data.solution;
+                document.getElementById('step-2').innerHTML = "Vedi sopra l'analisi dettagliata.";
+                document.getElementById('step-3').innerHTML = "Calcolo completato.";
+                document.getElementById('step-4').innerHTML = "Controlla sempre i passaggi logici prima di consegnare.";
+
+                const resultsCard = document.getElementById('results-card');
+                resultsCard.style.display = 'block';
+                resultsCard.scrollIntoView({ behavior: 'smooth' });
+                
+                if (window.MathJax) {
+                    MathJax.typesetPromise();
+                }
+            } else {
+                alert('Errore nell\'elaborazione del problema.');
+            }
+
+        } catch (error) {
+            loading.style.display = 'none';
+            alert('Errore di connessione con il motore di StepPhysics.');
+        }
+    }
+</script>
+
+</body>
+</html>
