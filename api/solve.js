@@ -1,4 +1,4 @@
- export default async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Metodo non consentito' });
     }
@@ -15,7 +15,7 @@
 - STEP 2: Formula & Passaggi Algebrici -> Indica la legge fisica e spiega come ricavare l'eventuale formula inversa.
 - STEP 3: Calcolo Numerico -> Sostituisci i valori ed esprimi il risultato finale evidente.
 - STEP 4: Il Trabocchetto da Evitare -> Scrivi un breve avviso sull'errore o la distrazione più comune.
-Regola: Vai dritto al punto, partendo direttamente dallo STEP 1.`;
+Vai dritto al punto, partendo direttamente dallo STEP 1.`;
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -34,12 +34,17 @@ Regola: Vai dritto al punto, partendo direttamente dallo STEP 1.`;
         });
 
         const data = await response.json();
-        const aiSolution = data.choices[0].message.content;
 
+        if (!response.ok) {
+            console.error("OpenAI Error:", data);
+            return res.status(500).json({ success: false, error: data.error?.message || 'Errore OpenAI' });
+        }
+
+        const aiSolution = data.choices[0].message.content;
         return res.status(200).json({ success: true, solution: aiSolution });
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Errore interno del motore di calcolo' });
+        console.error("Server Error:", error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 }
