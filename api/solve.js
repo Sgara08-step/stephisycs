@@ -1,50 +1,66 @@
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Metodo non consentito' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Metodo non consentito' });
+  }
+
+  const apiKey = process.env.AI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'Chiave API non configurata su Vercel' });
+  }
+
+  try {
+    const { prompt, image } = req.body;
+
+    const parts = [];
+
+    if (prompt) {
+      parts.push({ text: prompt });
     }
 
-    try {
-        const { problemText } = req.body;
-
-        if (!problemText) {
-            return res.status(400).json({ error: 'Testo del problema mancante' });
+    if (image) {
+      // Rimuove l'eventuale prefisso data:image/...;base64,
+      const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+      parts.push({
+        inline_data: {
+          mime_type: 'image/jpeg',
+          data: base64Data
         }
-
-        const systemPrompt = `Sei il motore di calcolo e tutor intelligente di StepPhysics. Il tuo compito è analizzare il problema di fisica fornito e risolverlo seguendo rigorosamente questa struttura in 4 passaggi, formattato con sintassi LaTeX ($...$ per inline e $$...$$ per staccate):
-- STEP 1: Dati & Conversione S.I. -> Estrai grandezze note e ignote ed esprimi le conversioni nel Sistema Internazionale.
-- STEP 2: Formula & Passaggi Algebrici -> Indica la legge fisica e spiega come ricavare l'eventuale formula inversa.
-- STEP 3: Calcolo Numerico -> Sostituisci i valori ed esprimi il risultato finale evidente.
-- STEP 4: Il Trabocchetto da Evitare -> Scrivi un breve avviso sull'errore o la distrazione più comune.
-Vai dritto al punto, partendo direttamente dallo STEP 1.`;
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.AI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: `Risolvi questo problema di fisica: ${problemText}` }
-                ],
-                temperature: 0.2
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error("OpenAI Error:", data);
-            return res.status(500).json({ success: false, error: data.error?.message || 'Errore OpenAI' });
-        }
-
-        const aiSolution = data.choices[0].message.content;
-        return res.status(200).json({ success: true, solution: aiSolution });
-
-    } catch (error) {
-        console.error("Server Error:", error);
-        return res.status(500).json({ success: false, error: error.message });
+      });
     }
+
+    const systemInstruction = `Sei un tutor esperto di fisica. Risolvi il problema mostrato o descritto in modo chiaro, preciso e passo-passo in lingua italiana. 
+Usa il formato Markdown per la risposta. Per le formule matematiche usa il formato LaTeX con $ per le formule inline e $$ per quelle su riga singola.`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: [
+          {
+            parts: parts
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Gemini Error:', data);
+      return res.status(500).json({ error: data.error?.message || 'Errore durante la chiamata a Gemini' });
+    }
+
+    const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Nessuna risposta generata.';
+
+    return res.status(200).json({ result: textResult });
+
+  } catch (err) {
+    console.error('Server Error:', err);
+    return res.status(500).json({ error: 'Errore interno del server' });
+  }
 }
