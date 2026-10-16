@@ -18,7 +18,6 @@ export default async function handler(req, res) {
     }
 
     if (image) {
-      // Rimuove l'eventuale prefisso data:image/...;base64,
       const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
       parts.push({
         inline_data: {
