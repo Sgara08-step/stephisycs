@@ -10,7 +10,6 @@ export default async function handler(req, res) {
 
   try {
     const { prompt, image } = req.body;
-
     const parts = [];
 
     if (prompt) {
@@ -27,10 +26,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const systemInstruction = `Sei un tutor esperto di fisica. Risolvi il problema mostrato o descritto in modo chiaro, preciso e passo-passo in lingua italiana. 
-Usa il formato Markdown per la risposta. Per le formule matematiche usa il formato LaTeX con $ per le formule inline e $$ per quelle su riga singola.`;
+    const systemInstruction = `Sei un tutor esperto di fisica. Risolvi il problema mostrato o descritto in modo chiaro, preciso e passo-passo in lingua italiana. Usa il formato Markdown per la risposta. Per le formule matematiche usa il formato LaTeX con $ per le formule inline e $$ per quelle su riga singola.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
